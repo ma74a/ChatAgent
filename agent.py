@@ -2,7 +2,9 @@ from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
+from langgraph.checkpoint.sqlite import SqliteSaver
 from dotenv import load_dotenv
+import sqlite3
 import os
 from pathlib import Path
 
@@ -46,8 +48,9 @@ def chat_node(state: MessagesState, llm_with_tools):
         "messages": [response]
     }
 
-def create_agent_graph(model_name: str):
+def build_agent_graph(model_name: str):
     """Create the agent graph"""
+    
     llm_with_tools = create_llm_model(model_name=model_name)
     tools = get_tools()
 
@@ -70,7 +73,26 @@ def create_agent_graph(model_name: str):
     workflow.add_conditional_edges("chat_node", tools_condition)
     workflow.add_edge("tools", "chat_node")
 
-    return workflow.compile()
+    conn = sqlite3(database="chatbot.db",check_same_thread=False)
+    checkpoint = SqliteSaver(conn=conn)
+
+    return workflow.compile(checkpointer=checkpoint)
+
+
+_AGENT_CACHE = {}
+
+def get_agent(model_name: str | None = None):
+    """
+    Return cached LangGraph agent for selected model.
+    If not created yet, create it once and reuse it.
+    """
+
+    selected_model = validate_model(model_name)
+
+    if selected_model not in _AGENT_CACHE:
+        _AGENT_CACHE[selected_model] = build_agent_graph(selected_model)
+
+    return _AGENT_CACHE[selected_model]
 
 
 
