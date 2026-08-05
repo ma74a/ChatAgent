@@ -5,7 +5,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from dotenv import load_dotenv
 import os
 from pathlib import Path
-import langgraph
+
 
 from utils import Config
 from tools import get_tools
@@ -32,8 +32,7 @@ def create_llm_model(model_name: str):
     selected_model = validate_model(model_name)
 
     llm = ChatGoogleGenerativeAI(
-        model=selected_model,
-        temperature=0.3
+        model=selected_model
     )
     llm_with_tools = llm.bind_tools(tools=tools)
     return llm_with_tools
