@@ -135,5 +135,6 @@ def get_tools():
         calculator,
         github_search,
         arxiv_search,
+        search_uploaded_docs,
         ]
     return tools
