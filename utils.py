@@ -2,7 +2,7 @@
 
 
 class Config:
-    DEFAULT_MODEL="gemini-3.5-flash"
+    DEFAULT_MODEL="gemini-3.5-flash-lite"
     
     ALLOWED_MODELS = {
     "gemini-2.5-flash",
