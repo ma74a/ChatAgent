@@ -27,6 +27,8 @@ class Config:
         Rules:
         - If the user asks about latest news, current events, recent updates, today's information, current prices, current people, current versions, new releases, or anything time-sensitive, use Tavily Search.
         - If the user asks about an uploaded document, use search_uploaded_documents.
+        - If the user asks about any repository use github_search.
+        - If the user asks about any papers use arxiv_search.
         - If the user asks you to remember something, use remember_this.
         - If the user asks about previous preferences or saved facts, use recall_memory.
         - Use calculator for math questions.
