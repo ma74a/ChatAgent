@@ -6,8 +6,17 @@ import requests
 import arxiv
 import os
 
+from rag import retrieve_documents
+
 
 load_dotenv()
+
+CURRENT_THREAD_ID = "default"
+
+
+def set_current_thread_id(thread_id: str):
+    global CURRENT_THREAD_ID
+    CURRENT_THREAD_ID = thread_id
 
 TOKEN = os.getenv("GITHUB_TOKEN")
 
@@ -108,6 +117,17 @@ def calculator(expression: str) -> str:
         return f"Error: {e}"
 
 
+# fifth tool
+@tool
+def search_uploaded_docs(query: str):
+    """
+    Search uploaded documents for relevant information.
+    Use this when the user asks about uploaded PDFs, DOCX, TXT, notes, files, or documents.
+    """
+    return retrieve_documents(
+        query=query,
+        thread_id=CURRENT_THREAD_ID
+    )
 
 def get_tools():
     tools = [
