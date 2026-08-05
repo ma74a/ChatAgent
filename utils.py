@@ -2,6 +2,8 @@
 
 
 class Config:
+    DATABASE_URL="sqlite:///data/chatbot_memory.db"
+
     DEFAULT_MODEL="gemini-3.5-flash-lite"
     
     ALLOWED_MODELS = {
