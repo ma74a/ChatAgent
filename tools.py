@@ -7,6 +7,7 @@ import arxiv
 import os
 
 from rag import retrieve_documents
+from database import save_memory, search_memory
 
 
 load_dotenv()
@@ -129,6 +130,25 @@ def search_uploaded_docs(query: str):
         thread_id=CURRENT_THREAD_ID
     )
 
+
+# sixth tool
+@tool
+def remember_this(memory: str) -> str:
+    """
+    function to save the memory into the LongTermMemory
+    """
+    return save_memory(thread_id=CURRENT_THREAD_ID, memory=memory)
+
+# seventh tool
+@tool
+def recall_memory():
+    """
+    Recall saved long-term memories about the user or this conversation.
+    """
+    return search_memory(thread_id=CURRENT_THREAD_ID)
+
+
+
 def get_tools():
     tools = [
         web_search,
@@ -136,5 +156,7 @@ def get_tools():
         github_search,
         arxiv_search,
         search_uploaded_docs,
+        remember_this,
+        recall_memory,
         ]
     return tools
