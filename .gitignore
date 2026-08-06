@@ -1,4 +1,7 @@
 
+chatbot.db
+chroma_db/*
+!chroma_db/.gitkeep
 test.py
 helps
 .vscode
