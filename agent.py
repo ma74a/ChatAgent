@@ -73,7 +73,7 @@ def build_agent_graph(model_name: str):
     workflow.add_conditional_edges("chat_node", tools_condition)
     workflow.add_edge("tools", "chat_node")
 
-    conn = sqlite3(database="chatbot.db",check_same_thread=False)
+    conn = sqlite3.connect(database="data/langgraph_checkpoints.sqlite",check_same_thread=False)
     checkpoint = SqliteSaver(conn=conn)
 
     return workflow.compile(checkpointer=checkpoint)
@@ -96,3 +96,24 @@ def get_agent(model_name: str | None = None):
 
 
 
+def agent_chat(thread_id: str, message: str):
+    agent = get_agent("gemini-3.5-flash-lite")
+    result = agent.invoke(
+        {
+            "messages": [
+                HumanMessage(content=message)
+            ]
+        },
+        config={
+            "configurable": {
+                "thread_id": thread_id
+            }
+        }
+    )
+    # last_message = result["messages"][-1]
+
+    # print(type(last_message.content))
+    # print(last_message.content[0]["text"])
+    # last_message = last_message.content[0]["text"]
+
+    return result["messages"][-1]
