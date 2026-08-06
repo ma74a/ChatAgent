@@ -305,3 +305,29 @@ def search_memory(thread_id: str) -> str:
 
     finally:
         db.close()
+
+
+
+def conversation_exit(thread_id: str) -> bool:
+    """
+    Check whether a conversation with the given thread ID exists.
+
+    Args:
+        thread_id (str): Unique identifier of the conversation.
+
+    Returns:
+        bool: True if the conversation exists, otherwise False.
+    """
+    db = SessionLocal()
+
+    try:
+        conversation = (
+        db.query(Conversation)
+        .filter(Conversation.thread_id==thread_id)
+        .first()
+        )
+
+        return conversation is not None
+
+    finally:
+        db.close()
