@@ -1,5 +1,9 @@
 
 chatbot.db
+upload/*
+!upload/.gitkeep
+data/*
+!data/.gitkeep
 chroma_db/*
 !chroma_db/.gitkeep
 test.py
