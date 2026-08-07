@@ -1,7 +1,9 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, File, UploadFile, Form
 from fastapi.templating import Jinja2Templates
 
 from uuid import uuid4
+import shutil
+from pathlib import Path
 
 from database import (
       init_db,
@@ -12,8 +14,9 @@ from database import (
       save_chat_message
       )
 from agent import agent_chat
-
 from schemas import ChatRequest
+from rag import add_docs_to_chroma
+from utils import Config
 
 
 app = FastAPI(title="ChatAgent API")
@@ -124,3 +127,35 @@ def chat(request: ChatRequest):
    return {
       "response": response
    }
+
+
+@app.post("/upload")
+def upload_file(thread_id: str=Form(...), file: UploadFile=File(...)):
+   
+   suffix = Path(file.filename).suffix.lower()
+   if suffix not in Config.ALLOWED_EXTENSIONS:
+       raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{suffix}'. Allowed: {', '.join(Config.ALLOWED_EXTENSIONS)}",
+        )
+
+   if not conversation_exit(thread_id):
+          raise HTTPException(
+             status_code=404,
+             detail="Conversation not found."
+      )
+
+   file_name =  f"{uuid4()}_{file.filename}"
+   save_path = Path("uploads") / file_name
+
+   with open(save_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+   # Index into ChromaDB
+   try:
+      result = add_docs_to_chroma(file_path=str(save_path), thread_id=thread_id)
+   except Exception as e:
+      save_path.unlink(missing_ok=True)
+      raise HTTPException(status_code=500, detail=f"Indexing failed: {e}")
+
+   return result
