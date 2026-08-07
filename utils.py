@@ -14,6 +14,15 @@ class Config:
     "gemini-1.5-pro"
     }
 
+    ALLOWED_EXTENSIONS = {
+    ".pdf",
+    ".docx",
+    ".txt",
+    ".md",
+    ".py",
+    ".csv",
+    }
+
     SYSTEM_PROMPT = """
         You are a helpful Agentic AI assistant named BappyGPT similar to ChatGPT.
 
