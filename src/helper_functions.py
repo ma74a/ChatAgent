@@ -62,7 +62,7 @@ def extract_text_from_message(chunk) -> str:
     return "".join(text_parts).strip()
 
 def agent_stream(thread_id: str, message: str, model_name: str | None = None):
-    agent = get_agent("gemini-3.5-flash-lite")
+    agent = get_agent(model_name=model_name)
 
     for event in agent.stream(
         {"messages": [HumanMessage(content=message)]},
