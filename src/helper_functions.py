@@ -3,7 +3,7 @@ from langchain_core.messages import HumanMessage
 from agent import get_agent
 
 def agent_chat(thread_id: str, message: str):
-    agent = get_agent("gemini-3.5-flash-lite")
+    agent = get_agent()
     result = agent.invoke(
         {
             "messages": [
