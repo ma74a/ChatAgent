@@ -39,14 +39,7 @@ def create_llm_model(model_name: str):
     llm_with_tools = llm.bind_tools(tools=tools)
     return llm_with_tools
 
-def chat_node(state: MessagesState, llm_with_tools):
-    """Create the chat Node"""
-    messages = [SystemMessage(content=Config.SYSTEM_PROMPT)] + state["messages"]
-    response = llm_with_tools.invoke(messages)
 
-    return {
-        "messages": [response]
-    }
 
 def build_agent_graph(model_name: str):
     """Create the agent graph"""
@@ -94,10 +87,3 @@ def get_agent(model_name: str | None = None):
         _AGENT_CACHE[selected_model] = build_agent_graph(selected_model)
 
     return _AGENT_CACHE[selected_model]
-
-
-
-
-
-
-    
