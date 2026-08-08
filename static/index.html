@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatAgent - AI Workspace</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Highlight.js Code Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <span class="brand-name">ChatAgent</span>
+                </div>
+                <button class="btn-icon mobile-only" id="close-sidebar-btn" title="Close Sidebar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- New Chat Button -->
+            <button class="btn-new-chat" id="new-chat-btn">
+                <i class="fa-solid fa-plus"></i>
+                <span>+ New Chat</span>
+            </button>
+
+            <!-- Conversations Section -->
+            <div class="sidebar-section">
+                <span class="sidebar-label">Recent Chats</span>
+                <div class="conversations-list" id="conversations-list">
+                    <!-- Dynamically populated / sample conversation items -->
+                </div>
+            </div>
+
+            <!-- Footer info -->
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="dot online"></span>
+                    <span>System Active</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <!-- Header Bar -->
+            <header class="chat-header">
+                <div class="header-left">
+                    <button class="btn-icon mobile-only" id="open-sidebar-btn" title="Open Sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="header-title">
+                        <h1 id="active-chat-title">ChatAgent</h1>
+                        <span class="header-subtitle" id="active-chat-subtitle">AI Assistant & Knowledge Base</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button class="btn-header-action" id="tts-global-toggle" title="Auto Read Aloud">
+                        <i class="fa-solid fa-volume-xmark" id="tts-icon"></i>
+                        <span id="tts-label">Audio: Off</span>
+                    </button>
+                    <button class="btn-header-action" id="clear-chat-btn" title="Reset View">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>Reset</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Conversation Scroll Area -->
+            <div class="chat-conversation-area" id="content-scroll-area">
+                <!-- Welcome Empty State -->
+                <div class="welcome-screen" id="welcome-screen">
+                    <div class="welcome-badge">
+                        <i class="fa-solid fa-sparkles"></i> Powered by Gemini & RAG
+                    </div>
+                    <h2>Welcome to ChatAgent</h2>
+                    <p>Ask questions, analyze documents, or start a new conversation below.</p>
+                    
+                    <!-- Suggested Topic Cards matching ASCII mock -->
+                    <div class="suggestion-grid">
+                        <div class="suggestion-card" data-prompt="What are the key concepts of Machine Learning?">
+                            <div class="card-icon"><i class="fa-solid fa-brain"></i></div>
+                            <div class="card-title">Machine Learning</div>
+                            <div class="card-desc">Overview of key concepts & algorithms</div>
+                        </div>
+                        <div class="suggestion-card" data-prompt="Explain how LangGraph works for stateful multi-agent systems">
+                            <div class="card-icon"><i class="fa-solid fa-diagram-project"></i></div>
+                            <div class="card-title">LangGraph Notes</div>
+                            <div class="card-desc">Stateful AI workflows & graph architecture</div>
+                        </div>
+                        <div class="suggestion-card" data-prompt="How do I query my uploaded Resume or PDF documents?">
+                            <div class="card-icon"><i class="fa-solid fa-file-invoice"></i></div>
+                            <div class="card-title">Resume & Documents</div>
+                            <div class="card-desc">Upload documents and extract insights</div>
+                        </div>
+                        <div class="suggestion-card" data-prompt="Explain Retrieval-Augmented Generation (RAG) with ChromaDB">
+                            <div class="card-icon"><i class="fa-solid fa-database"></i></div>
+                            <div class="card-title">RAG Engine</div>
+                            <div class="card-desc">Search vector databases with precision</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Chat Messages Feed -->
+                <div class="chat-messages hidden" id="chat-messages">
+                    <!-- Dynamically populated user & assistant messages -->
+                </div>
+            </div>
+
+            <!-- Bottom Control Bar matching ASCII layout: Upload | Model | Input | Send -->
+            <footer class="chat-input-wrapper">
+                <!-- File Upload Preview Chip -->
+                <div class="file-preview-bar hidden" id="file-preview-bar">
+                    <div class="file-preview-content">
+                        <i class="fa-solid fa-file-circle-check file-preview-icon"></i>
+                        <span id="file-name-display">document.pdf</span>
+                        <span class="file-status-badge" id="file-status-display">Indexing...</span>
+                    </div>
+                    <button class="btn-close-sm" id="cancel-upload-btn" title="Remove File">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Unified Control Bar -->
+                <div class="chat-input-bar">
+                    <!-- Hidden File Input -->
+                    <input type="file" id="file-input" class="hidden-input" accept=".pdf,.docx,.txt,.md,.py,.csv">
+                    
+                    <!-- Upload Button -->
+                    <button class="btn-bar-action" id="upload-btn" title="Upload Document (RAG Indexing)">
+                        <i class="fa-solid fa-paperclip"></i>
+                        <span class="btn-label">Upload</span>
+                    </button>
+
+                    <!-- Model Dropdown -->
+                    <div class="model-select-wrapper">
+                        <i class="fa-solid fa-microchip select-icon"></i>
+                        <select id="model-select" class="model-select" title="Select LLM Model">
+                            <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash-lite</option>
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                        </select>
+                    </div>
+
+                    <!-- Input Textarea -->
+                    <div class="input-field-wrapper">
+                        <textarea id="user-input" placeholder="Type your message..." rows="1"></textarea>
+                    </div>
+
+                    <!-- Voice Microphone Button -->
+                    <button class="btn-bar-icon mic-btn" id="mic-btn" title="Voice Input">
+                        <i class="fa-solid fa-microphone" id="mic-icon"></i>
+                    </button>
+
+                    <!-- Send Button -->
+                    <button class="btn-send" id="send-btn" title="Send Message">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span class="send-label">Send</span>
+                    </button>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- CDN Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

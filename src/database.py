@@ -10,9 +10,9 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
 from pathlib import Path
 from typing import List
-from utils import Config
+from config import Config
 
-Path("data").mkdir(exist_ok=True)
+Path(Config.DATA_DIR).mkdir(exist_ok=True)
 
 """
 check_same_thread=False
@@ -121,31 +121,74 @@ def create_or_update_conversation(thread_id: str, first_message: str | None=None
 
     finally:
         db.close()
-
-
 def list_conversations() -> List[Conversation]:
     """
-    Retrieve all conversations from the database ordered by their
+    Retrieve all active conversations from the database ordered by their
     last activity time in descending order.
-
-    The most recently updated conversations appear first, making it
-    suitable for displaying the chat history in the application's UI.
-
-    Returns:
-        list[Conversation]: A list of Conversation objects sorted by
-            their `updated_at` timestamp (newest first).
+    Auto-backfills titles for existing conversations that have messages.
     """
     db = SessionLocal()
 
     try:
-        return(
+        conversations = (
             db.query(Conversation)
             .order_by(Conversation.updated_at.desc())
             .all()
         )
 
+        valid_conversations = []
+        updated_any = False
+
+        for conv in conversations:
+            first_msg = (
+                db.query(ChatMessage)
+                .filter(ChatMessage.thread_id == conv.thread_id, ChatMessage.role == "user")
+                .order_by(ChatMessage.created_at.asc())
+                .first()
+            )
+
+            if first_msg and first_msg.content:
+                if not conv.title or conv.title == "New Chat":
+                    title = first_msg.content.strip()[:40]
+                    if len(first_msg.content.strip()) > 40:
+                        title += "..."
+                    conv.title = title
+                    updated_any = True
+                valid_conversations.append(conv)
+            elif conv.title and conv.title != "New Chat":
+                valid_conversations.append(conv)
+
+        if updated_any:
+            db.commit()
+
+        return valid_conversations
+
     finally:
         db.close()
+
+# def list_conversations() -> List[Conversation]:
+#     """
+#     Retrieve all conversations from the database ordered by their
+#     last activity time in descending order.
+
+#     The most recently updated conversations appear first, making it
+#     suitable for displaying the chat history in the application's UI.
+
+#     Returns:
+#         list[Conversation]: A list of Conversation objects sorted by
+#             their `updated_at` timestamp (newest first).
+#     """
+#     db = SessionLocal()
+
+#     try:
+#         return(
+#             db.query(Conversation)
+#             .order_by(Conversation.updated_at.desc())
+#             .all()
+#         )
+
+#     finally:
+#         db.close()
 
 
 def save_chat_message(thread_id: str, role: str, content: str):
@@ -308,7 +351,7 @@ def search_memory(thread_id: str) -> str:
 
 
 
-def conversation_exit(thread_id: str) -> bool:
+def conversation_exits(thread_id: str) -> bool:
     """
     Check whether a conversation with the given thread ID exists.
 

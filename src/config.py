@@ -1,8 +1,18 @@
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 
 class Config:
-    DATABASE_URL="sqlite:///data/chatbot_memory.db"
+    DATA_DIR = BASE_DIR / "data"
+    DATA_DIR.mkdir(exist_ok=True)
+    DATABASE_PATH = DATA_DIR / "chatbot_memory.db"
+    DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
+
+    CHROMA_DB_DIR=BASE_DIR / "chroma_db"
+    UPLOADS_DIR=BASE_DIR / "uploads"
+    STATIC_DIR=BASE_DIR / "static"
 
     DEFAULT_MODEL="gemini-3.5-flash-lite"
     
@@ -24,7 +34,7 @@ class Config:
     }
 
     SYSTEM_PROMPT = """
-        You are a helpful Agentic AI assistant named BappyGPT similar to ChatGPT.
+        You are a helpful Agentic AI assistant named ChatAgent similar to ChatGPT.
 
         You can:
         1. Answer normal questions.

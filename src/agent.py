@@ -9,12 +9,12 @@ import os
 from pathlib import Path
 
 
-from utils import Config
+from config import Config
 from tools import get_tools
 
 load_dotenv()
 
-Path("data").mkdir(exist_ok=True)
+Path(Config.DATA_DIR).mkdir(exist_ok=True)
 
 def validate_model(model_name: str) -> str:
     """Validate the model name which is right model name or not"""
@@ -73,7 +73,8 @@ def build_agent_graph(model_name: str):
     workflow.add_conditional_edges("chat_node", tools_condition)
     workflow.add_edge("tools", "chat_node")
 
-    conn = sqlite3.connect(database="data/langgraph_checkpoints.sqlite",check_same_thread=False)
+    database_path = Config.DATA_DIR / "langgraph_checkpoints.sqlite"
+    conn = sqlite3.connect(database=database_path,check_same_thread=False)
     checkpoint = SqliteSaver(conn=conn)
 
     return workflow.compile(checkpointer=checkpoint)
@@ -117,3 +118,64 @@ def agent_chat(thread_id: str, message: str):
     # last_message = last_message.content[0]["text"]
 
     return result["messages"][-1]
+
+from typing import Generator
+
+
+def extract_text_from_message(chunk) -> str:
+    """
+    Extract plain text from a LangChain message or streamed chunk.
+
+    Supports:
+    - Plain string content
+    - List[str]
+    - List[dict] (Gemini/OpenAI structured responses)
+    """
+
+    content = getattr(chunk, "content", "")
+
+    if not content:
+        return ""
+
+    if isinstance(content, str):
+        return content
+
+    if not isinstance(content, list):
+        return str(content)
+
+    text_parts = []
+
+    for item in content:
+        if isinstance(item, str):
+            text_parts.append(item)
+
+        elif isinstance(item, dict):
+            text = item.get("text") or item.get("content")
+            if isinstance(text, str):
+                text_parts.append(text)
+
+    return "".join(text_parts).strip()
+
+def agent_stream(thread_id: str, message: str, model_name: str | None = None):
+    agent = get_agent("gemini-3.5-flash-lite")
+
+    for event in agent.stream(
+        {"messages": [HumanMessage(content=message)]},
+        config={"configurable": {"thread_id": thread_id}},
+        stream_mode="messages" # stream individual message chunks
+    ):
+        # event is a tuple: (chunk, metadata)
+        chunk, metadata = event
+
+        # Only yield content from the chat_node, skip tool call chunks
+        if (
+            metadata.get("langgraph_node") == "chat_node"
+            and hasattr(chunk, "content")
+            and chunk.content
+        ):
+            text = extract_text_from_message(chunk=chunk)
+            if text:
+                yield text
+
+
+    

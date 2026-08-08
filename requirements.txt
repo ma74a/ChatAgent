@@ -17,3 +17,4 @@ langgraph-checkpoint-sqlite==3.1.1
 fastapi==0.141.1
 uvicorn==0.52.1
 Jinja2==3.1.6
+python-multipart==0.0.32

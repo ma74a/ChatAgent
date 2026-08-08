@@ -1,7 +1,7 @@
 
 chatbot.db
-upload/*
-!upload/.gitkeep
+uploads/*
+!uploads/.gitkeep
 data/*
 !data/.gitkeep
 chroma_db/*

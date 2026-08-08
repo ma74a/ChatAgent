@@ -1,34 +1,44 @@
 from fastapi import FastAPI, Request, HTTPException, File, UploadFile, Form
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from uuid import uuid4
 import shutil
 from pathlib import Path
+import json
 
 from database import (
       init_db,
       create_or_update_conversation,
       list_conversations,
       get_chat_history,
-      conversation_exit,
+      conversation_exits,
       save_chat_message
       )
-from agent import agent_chat
+from agent import agent_chat, agent_stream
 from schemas import ChatRequest
 from rag import add_docs_to_chroma
-from utils import Config
+from config import Config
 
 
 app = FastAPI(title="ChatAgent API")
-# templates = Jinja2Templates(directory="templates")
+
+
+Config.STATIC_DIR.mkdir(exist_ok=True)
+# Serve static files
+app.mount(
+    "/static",
+    StaticFiles(directory=Config.STATIC_DIR),
+    name="static"
+)
 
 init_db()
 
-@app.get("/health")
-def home():
-   return {
-      "status": "ok"
-   } 
+
+@app.get("/")
+def read_index():
+    return FileResponse(Config.STATIC_DIR / "index.html")
     
 
 @app.post("/conversations")
@@ -107,7 +117,7 @@ def extract_text_from_message(chunk) -> str:
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-   if not conversation_exit(request.thread_id):
+   if not conversation_exits(request.thread_id):
       raise HTTPException(
          status_code=404,
          detail="Conversation not found."
@@ -128,6 +138,71 @@ def chat(request: ChatRequest):
       "response": response
    }
 
+def sse_event(event_type: str, content: str | None = None):
+    payload = {"type": event_type}
+
+    if content is not None:
+        payload["content"] = content
+
+    return f"data: {json.dumps(payload)}\n\n"
+
+@app.post("/chat/stream")
+def chat_stream(request: ChatRequest):
+   if not conversation_exits(request.thread_id):
+        raise HTTPException(
+            status_code=404,
+            detail="Conversation not found"
+        )
+
+   save_chat_message(
+        thread_id=request.thread_id,
+        role="user",
+        content=request.message
+    )
+
+   def generate():
+         full_response = []
+         try:
+            for chunk in agent_stream(
+               thread_id=request.thread_id,
+               message=request.message,
+               model_name=getattr(request, "model_name", None)
+            ):
+               if not chunk:
+                    continue
+
+               full_response.append(chunk)
+               # SSE format: each event is "data: ...\n\n"
+               yield sse_event("chunk", chunk)
+
+         except Exception as e:
+            yield sse_event("error", str(e))
+            return
+
+         finally:
+             # Save the complete response to DB after streaming finishes
+            if full_response:
+                save_chat_message(
+                    thread_id=request.thread_id,
+                    role="assistant",
+                    content="".join(full_response)
+               )
+
+            # Signal the client that the stream is done
+            yield sse_event("done")
+
+         
+   return StreamingResponse(
+       generate(),
+       media_type="text/event-stream",
+       headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",   # disables nginx buffering if deployed behind it
+       }
+   )  
+
+            
 
 @app.post("/upload")
 def upload_file(thread_id: str=Form(...), file: UploadFile=File(...)):
@@ -139,17 +214,23 @@ def upload_file(thread_id: str=Form(...), file: UploadFile=File(...)):
             detail=f"Unsupported file type '{suffix}'. Allowed: {', '.join(Config.ALLOWED_EXTENSIONS)}",
         )
 
-   if not conversation_exit(thread_id):
+   if not conversation_exits(thread_id):
           raise HTTPException(
              status_code=404,
              detail="Conversation not found."
       )
 
-   file_name =  f"{uuid4()}_{file.filename}"
-   save_path = Path("uploads") / file_name
+   # sanitize filename to avoid path traversal and ensure upload dir exists
+   safe_filename = Path(file.filename).name
+   file_name = f"{uuid4()}_{safe_filename}"
+   save_path = Path(Config.UPLOADS_DIR) / file_name
+
+   # ensure upload directory exists and log target path for debugging
+   save_path.parent.mkdir(parents=True, exist_ok=True)
+   print(f"Saving uploaded file to: {save_path} (cwd={Path.cwd()})")
 
    with open(save_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+      shutil.copyfileobj(file.file, buffer)
 
    # Index into ChromaDB
    try:
