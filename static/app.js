@@ -161,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         welcomeScreen?.classList.remove('hidden');
         chatMessages?.classList.add('hidden');
         if (activeChatTitle) activeChatTitle.textContent = 'ChatAgent';
-        if (activeChatSubtitle) activeChatSubtitle.textContent = 'AI Assistant & Knowledge Base';
         renderConversationsList();
     }
 
@@ -169,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
         welcomeScreen?.classList.add('hidden');
         chatMessages?.classList.remove('hidden');
         if (activeChatTitle) activeChatTitle.textContent = title;
-        if (activeChatSubtitle) activeChatSubtitle.textContent = `Thread ID: ${activeThreadId ? activeThreadId.substring(0, 8) : ''}...`;
     }
 
     // --- API Calls: Conversations ---
@@ -356,6 +354,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 msgContentEl.innerHTML = renderMarkdown(fullContent);
                                 applyCodeHighlighting(msgContentEl);
                                 scrollToBottom();
+                            } else if (data.type === 'tool_call') {
+                                appendToolStepBadge(wrapperEl, data.name, data.args);
                             } else if (data.type === 'error') {
                                 fullContent += `\n\n*[Error: ${data.content}]*`;
                                 msgContentEl.innerHTML = renderMarkdown(fullContent);
@@ -437,6 +437,40 @@ document.addEventListener('DOMContentLoaded', () => {
         scrollToBottom();
 
         return { msgContentEl: bubble, wrapperEl: wrapper };
+    }
+
+    function appendToolStepBadge(wrapperEl, toolName, toolArgs) {
+        if (!wrapperEl) return;
+        const toolId = escapeHtml(toolName || 'tool');
+        const existing = wrapperEl.querySelector(`.tool-step-badge[data-tool="${toolId}"]`);
+        if (existing) return;
+
+        const stepCard = document.createElement('div');
+        stepCard.className = 'tool-step-card tool-step-badge';
+        stepCard.setAttribute('data-tool', toolId);
+
+        let friendlyName = toolName;
+        if (toolName === 'github_search' || toolName.includes('github')) {
+            friendlyName = 'Searching GitHub repositories...';
+        } else if (toolName === 'arxiv_search' || toolName.includes('arxiv')) {
+            friendlyName = 'Searching arXiv research papers...';
+        } else if (toolName === 'tavily_search_results_json' || toolName.includes('tavily') || toolName.includes('search')) {
+            friendlyName = 'Searching the web...';
+        } else if (toolName === 'retrieve_documents' || toolName.includes('retrieve') || toolName.includes('rag') || toolName.includes('doc')) {
+            friendlyName = 'Searching uploaded documents (RAG)...';
+        } else if (toolName.includes('memory')) {
+            friendlyName = 'Accessing long-term memory...';
+        } else if (toolName.includes('calc') || toolName.includes('sympy') || toolName.includes('math')) {
+            friendlyName = 'Executing mathematical calculation...';
+        } else {
+            friendlyName = `Using tool: ${toolName}`;
+        }
+
+        stepCard.innerHTML = `
+            <i class="fa-solid fa-bolt"></i>
+            <span>${escapeHtml(friendlyName)}</span>
+        `;
+        wrapperEl.insertBefore(stepCard, wrapperEl.firstChild);
     }
 
     function renderMarkdown(text) {
