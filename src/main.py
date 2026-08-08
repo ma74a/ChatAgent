@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -16,7 +16,11 @@ from database import (
       conversation_exits,
       save_chat_message
       )
-from agent import agent_chat, agent_stream
+from helper_functions import (
+      agent_chat,
+      agent_stream,
+      extract_text_from_message
+   )
 from schemas import ChatRequest
 from rag import add_docs_to_chroma
 from config import Config
@@ -81,39 +85,39 @@ async def fatch_chat_history(thread_id: str):
    ]
 
 
-def extract_text_from_message(chunk) -> str:
-    """
-    Extract plain text from a LangChain message or streamed chunk.
+# def extract_text_from_message(chunk) -> str:
+#     """
+#     Extract plain text from a LangChain message or streamed chunk.
 
-    Supports:
-    - Plain string content
-    - List[str]
-    - List[dict] (Gemini/OpenAI structured responses)
-    """
+#     Supports:
+#     - Plain string content
+#     - List[str]
+#     - List[dict] (Gemini/OpenAI structured responses)
+#     """
 
-    content = getattr(chunk, "content", "")
+#     content = getattr(chunk, "content", "")
 
-    if not content:
-        return ""
+#     if not content:
+#         return ""
 
-    if isinstance(content, str):
-        return content
+#     if isinstance(content, str):
+#         return content
 
-    if not isinstance(content, list):
-        return str(content)
+#     if not isinstance(content, list):
+#         return str(content)
 
-    text_parts = []
+#     text_parts = []
 
-    for item in content:
-        if isinstance(item, str):
-            text_parts.append(item)
+#     for item in content:
+#         if isinstance(item, str):
+#             text_parts.append(item)
 
-        elif isinstance(item, dict):
-            text = item.get("text") or item.get("content")
-            if isinstance(text, str):
-                text_parts.append(text)
+#         elif isinstance(item, dict):
+#             text = item.get("text") or item.get("content")
+#             if isinstance(text, str):
+#                 text_parts.append(text)
 
-    return "".join(text_parts).strip()
+#     return "".join(text_parts).strip()
 
 @app.post("/chat")
 def chat(request: ChatRequest):
